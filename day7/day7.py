@@ -2,7 +2,7 @@
 from operator import itemgetter
 from pprint import pprint as pp
 
-simple = """\
+known_circuit = """\
 123 -> x
 456 -> y
 x AND y -> d
@@ -44,6 +44,7 @@ OPS = {
     'RSHIFT': RSHIFT,
     'NOT': NOT,
 }
+OPS_VALUES = tuple(OPS.values())
 
 def makecircuit(lines):
     circuit = {}
@@ -54,7 +55,7 @@ def makecircuit(lines):
         if result:
             name, op = result
             i1, i2 = map(str.strip, lhs.split(name))
-            args = tuple(safeint(i) for i in [i1, i2] if i )
+            args = tuple(safeint(i) for i in [i1, i2] if i)
             circuit[op] = args
             circuit[endpoint] = op
         else:
@@ -67,10 +68,12 @@ def get_op(s):
             return k,v()
 
 def isop(thing):
-    return isinstance(thing, tuple(OPS.values()))
+    return isinstance(thing, OPS_VALUES)
 
 def isint(thing):
-    return isinstance(thing, int)
+    r = isinstance(thing, int)
+    #print 'thing %s is int, %s' % (thing, r)
+    return r
 
 def safeint(thing):
     try:
@@ -86,86 +89,50 @@ def is_sequence(thing):
     else:
         return True
 
-def resolve2(circuit, *keys):
-    print 'resolve:keys: %s' % (keys, )
+def resolve(circuit, key, start=None):
+    if start is None:
+        start = key
 
-    if len(keys) == 0:
-        return []
+    print '\nstart: %s, key: %s, isop: %s' % (start, key, isop(key))
 
-    vals = []
-    for key in keys:
-        try:
-            val = circuit[key]
-        except KeyError:
-            vals = [ keys[0], ] + resolve(circuit, *keys[1:])
-            break
+    if isop(key):
+        op = key
+        print 'recursive values: circuit[key]: %s' % (circuit[key], )
+        args = [ resolve(circuit, value, start=start) for value in circuit[key] ]
+        print 'isop: %s, args: %s' % (op, args, )
+        r = op(*args)
+        print 'op ret: %s' % (r, )
+        return r
 
-        print 'resolve:key:%s, val:%s' % (key, val)
+    elif isint(key):
+        print 'isint: ret: %s' % (key, )
+        return key
 
-        if isint(val):
-            vals.append(val)
-        else:
-            if isop(key):
-                op = key
-                args = resolve(circuit, *val)
-                print '%s(%s)' % (op, args)
-                return op(*args)
-            else:
-                return resolve(circuit, *val)
+    else:
+        print 'else: val: %s' % (circuit[key], )
+        return resolve(circuit, circuit[key], start=start)
 
-    print 'resolve:vals:%s' % (vals, )
-    return vals
-
-def resolve(circuit, *keys):
-    print
-    print 'keys: %s' % (keys, )
-
-    getter = itemgetter(*keys)
-    values = getter(circuit)
-    print 'values: %s' % (values, )
-    print 'type(values) == %s' % (type(values), )
-
-    if not isinstance(values, tuple):
-        values = (values, )
-
-    values = tuple(v if isint(v) else resolve(circuit, v) for v in values)
-
-    return resolve(circuit, *values)
-
-def find_path(graph, start, end, path=[]):
-    path = path + [start]
-    if start == end:
-        return path
-    if not graph.has_key(start):
-        return None
-    for node in graph[start]:
-        if node not in path:
-            newpath = find_path(graph, node, end, path)
-            if newpath:
-                return newpath
-    return None
-
-def main_simple():
-    circuit = makecircuit(simple.splitlines())
-
-    print 'circuit:'
+def test():
+    circuit = makecircuit(known_circuit.splitlines())
     pp(circuit)
+    known_good = { 'd': 72, 'e': 507, 'f': 492, 'g': 114, 'h': 65412,
+                   'i': 65079, 'x': 123, 'y': 456 }
+    for k in 'defghi':
+        print
+        print
+        r = resolve(circuit, k)
+        assert known_good[k] == r
+    print 'test passed'
 
-    key = 'd'
-    print 'resolve(circuit, %s)' % key
-    print 'result: %s' % resolve(circuit, key)
-
-def main_real():
+def find_a():
     with open('input') as f:
         circuit = makecircuit(f.readlines())
-
         pp(circuit)
-
         print resolve(circuit, 'a')
 
 def main():
-    #main_simple()
-    main_real()
+    #test()
+    find_a()
 
 if __name__ == '__main__':
     main()
