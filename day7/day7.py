@@ -89,7 +89,8 @@ def is_sequence(thing):
     else:
         return True
 
-def resolve(circuit, key, start=None):
+def resolve(circuit, key, start=None, visited=[]):
+    #TODO: visited list
     if start is None:
         start = key
 
@@ -131,7 +132,7 @@ def find_a():
         print resolve(circuit, 'a')
 
 def main():
-    #test()
+    test()
     find_a()
 
 if __name__ == '__main__':
