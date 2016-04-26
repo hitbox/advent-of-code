@@ -1,6 +1,7 @@
 #!python2
+import sys
 from operator import itemgetter
-from pprint import pprint as pp
+from pprint import pprint as pp, pformat
 
 known_circuit = """\
 123 -> x
@@ -89,29 +90,49 @@ def is_sequence(thing):
     else:
         return True
 
-def resolve(circuit, key, start=None, visited=[]):
-    #TODO: visited list
-    if start is None:
-        start = key
+def indentprint(msg, n):
+    print '  ' * n + msg
 
-    print '\nstart: %s, key: %s, isop: %s' % (start, key, isop(key))
+MAX_VISIT = 64
+def resolve(circuit, key, _visited={}, _order=[], _depth=0):
+
+    #THIS VERSION FOUND THE ANSWER!
+    #Good lord it's ugly.
+
+    _order.append(key)
+
+    if not key in _visited:
+        _visited[key] = -1
+
+    _visited[key] += 1
+
+    for k,v in _visited.items():
+        if v > MAX_VISIT:
+            #print 'Order:\n%s' % (pformat(_order, 4), )
+            print 'Key "%s" visited > %s times.' % (key, MAX_VISIT)
+            pp(circuit)
+            sys.exit()
+
+    indentprint('key: %s, isop: %s' % (key, isop(key)), _depth)
 
     if isop(key):
         op = key
-        print 'recursive values: circuit[key]: %s' % (circuit[key], )
-        args = [ resolve(circuit, value, start=start) for value in circuit[key] ]
-        print 'isop: %s, args: %s' % (op, args, )
+        indentprint('recursive values: circuit[key]: %s' % (circuit[key], ), _depth)
+        args = [ resolve(circuit, value, _depth=_depth+1) for value in circuit[key] ]
+        indentprint('isop: %s, args: %s' % (op, args, ), _depth)
         r = op(*args)
-        print 'op ret: %s' % (r, )
+        indentprint('op ret: %s' % (r, ), _depth)
         return r
 
     elif isint(key):
-        print 'isint: ret: %s' % (key, )
+        indentprint('isint: ret: %s' % (key, ), _depth)
         return key
 
     else:
-        print 'else: val: %s' % (circuit[key], )
-        return resolve(circuit, circuit[key], start=start)
+        indentprint('else: val: %s' % (circuit[key], ), _depth)
+        r = resolve(circuit, circuit[key], _depth=_depth+1)
+        circuit[key] = r
+        return r
 
 def test():
     circuit = makecircuit(known_circuit.splitlines())
@@ -132,7 +153,7 @@ def find_a():
         print resolve(circuit, 'a')
 
 def main():
-    test()
+    #test()
     find_a()
 
 if __name__ == '__main__':
