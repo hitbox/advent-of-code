@@ -1,58 +1,83 @@
 import string
+import itertools
 from string import lowercase
 import sys
+from pprint import pprint as pp
 
-three_character_runs = set(''.join(t)
-                           for t in zip(lowercase[:-3], lowercase[1:-2], lowercase[2:-1]))
+ZORD = ord('z')
+AORD = ord('a')
 
-def isvalid(password):
+BADCHARS = 'iol'
+BADORDS = set([ord(c) for c in BADCHARS])
 
-    pset = set(password)
+def stagger(l, n):
+    args = [ l[i:] for i in range(n) ]
+    return itertools.izip(*args)
 
-    if set('iol') & pset:
-        return False
+def getpairs_d(l):
+    return set(t for t in zip(l[:-1:2], l[1::2]) if t[0] == t[1])
 
-    if not three_character_runs & pset:
-        return False
+def getpairs(s):
+    i = iter(s)
+    last = None
+    accum = []
+    for current in i:
+        if last is not None:
+            if last == current:
+                accum.append(last + current)
+                next(i, None)
+        last = current
+    return set(accum)
 
-    # unique, non-overlapping pairs of letters
-    pairs = set([ ''.join(t) for t in zip(password[:-1:2], password[1::2]) if t[0] == t[1] ])
-
-    if len(pairs) < 2:
-        return False
-
-    return True
-
-def increment(s, v=None):
-    if v is None:
-        v = 1
-
+def increment(s):
     ords = [ ord(c) for c in s ]
 
-    i = -1
-    ords[i] += v
+    def resolvecarry():
+        i = -1
+        while ords[i] > ZORD:
+            ords[i] = AORD
+            i = i - 1
+            ords[i] = incord(ords[i])
 
-    while ords[i] > ord('z'):
-        ords[i] = ord('a')
-        i = i - 1
+    def threes():
+        staggered = stagger(ords, 3)
+        return set(t for t in staggered if t[0] == t[1]-1 == t[2]-2)
 
-        if abs(i) > len(ords):
-            ords = [ord('a')] + ords
-        else:
-            ords[i] += 1
+    def incord(code):
+        # skip "bad" ords
+        if code + 1 in BADORDS:
+            return code + 2
+        return code + 1
+
+    def _increment():
+        ords[-1] = incord(ords[-1])
+        resolvecarry()
+
+    def isvalid():
+        return len(getpairs(ords)) > 1 and threes()
+
+    while not isvalid():
+        _increment()
+        progress("simple: %s" % (ords, ))
+
+        while len(getpairs(ords)) < 2:
+            _increment()
+            progress(" pairs: %s" % (ords, ))
+
+        while not threes():
+            _increment()
+            progress("threes: %s" % (ords, ))
 
     return ''.join( chr(o) for o in ords )
 
+_progress = '{}\r'.format
+def progress(s):
+    print s
+    #sys.stdout.write(_progress(s))
+
 def main():
     password = 'vzbxkghb'
-
-    fmt = '{}\r'.format
-
-    while not isvalid(password):
-        password = increment(password)
-        sys.stdout.write(fmt(password))
-
-    print password
+    print '\n' + increment(password)
 
 def debug_isvalid():
     print isvalid('hijklmmn')
@@ -72,6 +97,28 @@ def debug_increment():
 
         sys.stdout.write(fmt(s))
 
+def test_stagger():
+    l = range(10)
+    print " the list: %s" % (l,)
+    print "staggered: %s" % (list(stagger(l, 3)), )
+
+def test_pairs():
+    for s in ["abcdef", "aaaaaa", "abcaad", "aacaad", "bbcaad"]:
+        print "%s => %s" % (s, getpairs(s))
+
+
 if __name__ == '__main__':
     #debug_isvalid()
+    #test_stagger()
+    #test_pairs()
+
     main()
+
+    # not right:
+    # vzccaabc
+    # vzbxxwxy
+
+    # F I N A L L Y ! ! !
+    #vzbxxyzz
+    # my pair finding function wrong wrong (well the last thing that was
+    # wrong)
