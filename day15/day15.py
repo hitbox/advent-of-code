@@ -30,32 +30,46 @@ def apply():
 SCOREFIELDS = [f for f in FIELDS if f != 'calories']
 
 def score(ingredients, recipe):
-    s = 0
+    total = 1
 
     for scorefield in SCOREFIELDS:
-        pass
 
-    for ingredient,teaspoons in recipe.items():
-        for ak,av in ingredients[ingredient].items():
-            if ak in SCOREFIELDS:
-                s += av * teaspoons
-    return s
+        fieldtotal = 0
+        for ingredient, teaspoons in recipe.items():
+            fieldvalue = ingredients[ingredient][scorefield]
+            fieldscore = fieldvalue * teaspoons
+            fieldtotal += fieldscore
+
+        if fieldtotal < 0:
+            fieldtotal = 0
+        total *= fieldtotal
+
+    return total
 
 def distributions(n):
-    return ( c for c in permutations(range(101), n) if sum(c) == 100 )
+    return ( c for c in permutations(range(1, 100), n) if sum(c) == 100 )
+
+def findbestscore(ingredients):
+    scores = []
+    recipes = []
+    for dist in distributions(len(ingredients)):
+        recipe = dict(zip(ingredients.keys(), dist))
+        recipes.append(recipe)
+        scores.append( score(ingredients, recipe) )
+    best = max(scores)
+    return best, recipes[scores.index(best)]
+
+def test():
+    ingredients = parse(SAMPLE)
+    score, recipe = findbestscore(ingredients)
+    assert score == 62842880
 
 def main():
-    ingredients = parse(SAMPLE)
-    pp(ingredients)
-
-    scores = []
-    for t in distributions(len(ingredients)):
-        recipe = dict(zip(ingredients.keys(), t))
-        pp(recipe)
-        scores.append( score(ingredients, recipe) )
-        break
-
-    #print max(scores)
+    ingredients = parse(open('input').read())
+    score, recipe = findbestscore(ingredients)
+    print (score, recipe)
+    #answer: 18965440
 
 if __name__ == '__main__':
+    test()
     main()
