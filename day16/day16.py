@@ -1,4 +1,8 @@
+import os
 import re
+from itertools import izip_longest
+from pprint import pprint as pp
+from collections import defaultdict
 
 TICKER = {
     'children': 3,
@@ -23,11 +27,12 @@ class LineParser(object):
     def __call__(self, line):
         match = self._re(line)
         if match:
-            d = match.groupdict()
-            d['sue'] = int(d['sue'])
+            suedict = match.groupdict()
+            suedict['sue'] = int(suedict['sue'])
             marshal = lambda k, v: (k, int(v))
-            d['attrs'] = dict(marshal(*item.split(': ')) for item in d['attrs'].split(', '))
-            return d
+            suedict['attrs'] = dict(marshal(*item.split(': '))
+                                    for item in suedict['attrs'].split(', '))
+            return suedict
 
 
 def parse(text):
@@ -38,20 +43,33 @@ def parse(text):
         sues.append(parser(line))
     return sues
 
-def matching(sue):
-    return [ i1 for i1, i2 in zip(sue['attrs'].items(), TICKER.items()) if i1 == i2 ]
+def getmatches(sue):
+    matches = {}
+    for tickerkey, tickervalue in TICKER.items():
+        if tickerkey in sue['attrs'] and tickervalue == sue['attrs'][tickerkey]:
+            #matches.append(sue['attrs'][tickerkey])
+            #matches.append({tickerkey: tickervalue})
+            matches[tickerkey] = tickervalue
+    return matches
+    return [ sueitem for sueitem, tickeritem in
+                     izip_longest(sue['attrs'].items(), TICKER.items())
+                     if sueitem == tickeritem ]
 
 def main():
-    data = parse(open('input').read())
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'input')
+    sues_data = parse(open(path).read())
 
-    notsues = (315, 335, 294, 121, 161, 378)
+    notsues = (315, 335, 294, 121, 161, 378, 126)
 
-    for sue in data:
-        d = matching(sue)
-        if d and sue['sue'] not in notsues:
-            print sue
-            print d
-            print
+    suematches = {}
+    for sue_data in sues_data:
+        matches = getmatches(sue_data)
+        if matches:
+            suematches[sue_data['sue']] = matches
+    pp(suematches)
+    s = sorted(suematches.items(), key=lambda sueitem: len(sueitem[1]))
+    pp(s)
+    #answer: 
 
 if __name__ == '__main__':
     main()
