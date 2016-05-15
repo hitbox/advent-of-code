@@ -1,17 +1,6 @@
 #!python2
-import sys
-from operator import itemgetter
-from pprint import pprint as pp, pformat
-
-known_circuit = """\
-123 -> x
-456 -> y
-x AND y -> d
-x OR y -> e
-x LSHIFT 2 -> f
-y RSHIFT 2 -> g
-NOT x -> h
-NOT y -> i"""
+from pprint import pprint as pp
+from adventlib import input_path
 
 class AND(object):
     def __call__(self, x, y):
@@ -47,9 +36,9 @@ OPS = {
 }
 OPS_VALUES = tuple(OPS.values())
 
-def makecircuit(lines):
+def makecircuit(text):
     circuit = {}
-    for line in lines:
+    for line in text.splitlines():
         line = line.strip()
         lhs, endpoint = line.split(' -> ')
         result = get_op(lhs)
@@ -73,7 +62,6 @@ def isop(thing):
 
 def isint(thing):
     r = isinstance(thing, int)
-    #print 'thing %s is int, %s' % (thing, r)
     return r
 
 def safeint(thing):
@@ -90,71 +78,59 @@ def is_sequence(thing):
     else:
         return True
 
-def indentprint(msg, n):
-    print '  ' * n + msg
-
-MAX_VISIT = 64
-def resolve(circuit, key, _visited={}, _order=[], _depth=0):
-
-    #THIS VERSION FOUND THE ANSWER!
-    #Good lord it's ugly.
-
-    _order.append(key)
-
-    if not key in _visited:
-        _visited[key] = -1
-
-    _visited[key] += 1
-
-    for k,v in _visited.items():
-        if v > MAX_VISIT:
-            #print 'Order:\n%s' % (pformat(_order, 4), )
-            print 'Key "%s" visited > %s times.' % (key, MAX_VISIT)
-            pp(circuit)
-            sys.exit()
-
-    indentprint('key: %s, isop: %s' % (key, isop(key)), _depth)
-
+def resolve(circuit, key):
     if isop(key):
         op = key
-        indentprint('recursive values: circuit[key]: %s' % (circuit[key], ), _depth)
-        args = [ resolve(circuit, value, _depth=_depth+1) for value in circuit[key] ]
-        indentprint('isop: %s, args: %s' % (op, args, ), _depth)
+        args = [ resolve(circuit, value) for value in circuit[key] ]
         r = op(*args)
-        indentprint('op ret: %s' % (r, ), _depth)
         return r
 
     elif isint(key):
-        indentprint('isint: ret: %s' % (key, ), _depth)
         return key
 
     else:
-        indentprint('else: val: %s' % (circuit[key], ), _depth)
-        r = resolve(circuit, circuit[key], _depth=_depth+1)
+        r = resolve(circuit, circuit[key])
         circuit[key] = r
         return r
 
-def test():
-    circuit = makecircuit(known_circuit.splitlines())
-    pp(circuit)
+def tests():
+    known_circuit = """\
+    123 -> x
+    456 -> y
+    x AND y -> d
+    x OR y -> e
+    x LSHIFT 2 -> f
+    y RSHIFT 2 -> g
+    NOT x -> h
+    NOT y -> i"""
+
+    circuit = makecircuit(known_circuit)
     known_good = { 'd': 72, 'e': 507, 'f': 492, 'g': 114, 'h': 65412,
                    'i': 65079, 'x': 123, 'y': 456 }
     for k in 'defghi':
-        print
-        print
         r = resolve(circuit, k)
         assert known_good[k] == r
-    print 'test passed'
 
-def find_a():
-    with open('input') as f:
-        circuit = makecircuit(f.readlines())
-        pp(circuit)
-        print resolve(circuit, 'a')
+def part1():
+    text = open(input_path(__file__, 1)).read()
+    circuit = makecircuit(text)
+    answer = resolve(circuit, 'a')
+    print 'Part 1: circuit a: %s' % (answer, )
+    return answer
+
+def part2(a):
+    # Now, take the signal you got on wire a, override wire b to that signal,
+    # and reset the other wires (including wire a). What new signal is
+    # ultimately provided to wire a?
+    text = open(input_path(__file__, 1)).read()
+    circuit = makecircuit(text)
+    circuit['b'] = a
+    print 'Part 2: circuit a: %s' % (resolve(circuit, 'a'), )
 
 def main():
-    #test()
-    find_a()
+    tests()
+    a = part1()
+    part2(a)
 
 if __name__ == '__main__':
     main()
