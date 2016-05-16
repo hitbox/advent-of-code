@@ -1,3 +1,4 @@
+#!python
 import re
 from pprint import pprint as pp
 from adventlib import input_path
