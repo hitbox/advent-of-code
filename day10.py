@@ -1,5 +1,22 @@
-
+#!python
 def look_and_say(s):
+    """
+    Way faster than look_and_say1
+    """
+    rv = ''
+    i = 0
+    l = len(s)
+    while i < l:
+        n = 1
+        c = s[i]
+        i += 1
+        while i < l and s[i] == c:
+            i += 1
+            n += 1
+        rv += str(n) + c
+    return rv
+
+def look_and_say1(s):
     rv = ''
 
     def getrun(ofchar, s):
@@ -23,41 +40,24 @@ def look_and_say(s):
 
     return rv
 
-def chew_look_and_say(s, nchews):
-    n = 0
-    ins = s
-    while n < nchews:
-        rv = look_and_say(ins)
-        yield (ins, rv)
-        ins = rv
-        n += 1
-
-def debug():
-    print '\n-- DEBUGGING --'
-    for (inputstr, outputstr) in chew_look_and_say('1', 5):
-        print '%s == %s' % (inputstr, outputstr)
-
 def test():
-    print '\n-- TESTS --'
     assert look_and_say('1') == '11'
     assert look_and_say('11') == '21'
     assert look_and_say('21') == '1211'
     assert look_and_say('1211') == '111221'
     assert look_and_say('111221') == '312211'
-    print 'tests passed.'
 
-def main():
-
-    print '\n-- MAIN --'
-    inputstr = '1321131112'
-
-    for _ in range(40):
+def run(inputstr, n):
+    for _ in range(n):
         rv = look_and_say(inputstr)
         inputstr = rv
+    return rv
 
-    print len(rv)
+def main():
+    inputstr = '1321131112'
+    print 'Part 1: length %s' % len(run(inputstr, 40))
+    print 'Part 2: length %s' % len(run(inputstr, 50))
 
 if __name__ == '__main__':
-    debug()
     test()
     main()

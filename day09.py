@@ -1,6 +1,8 @@
+#!python
 import re
 import itertools
 from pprint import pprint as pp
+from adventlib import input_path
 
 _parser_re = re.compile('(?P<origin>\S+) to (?P<destination>\S+) = (?P<distance>\d+)').match
 
@@ -43,19 +45,26 @@ def test():
     routes = itertools.permutations(locations)
 
     assert min(sumdist(distances, *t) for t in routes) == 605
-    print 'test passed'
 
-def main():
-    inputstr = open('input').read()
+    routes = itertools.permutations(locations)
+    assert max(sumdist(distances, *t) for t in routes) == 982
+
+
+def part1():
+    inputstr = open(input_path(__file__, 1)).read()
     locations, distances = parseinput(inputstr.splitlines())
 
-    pp(locations)
     routes = itertools.permutations(locations)
-    print min(sumdist(distances, *t) for t in routes)
+    print 'Part 1: distance of the shortest route: %s' % min(sumdist(distances, *t) for t in routes)
 
-    #117 is the answer
-    # wanted to write my own product producer function but gave up and used itertools
+def part2():
+    inputstr = open(input_path(__file__, 1)).read()
+    locations, distances = parseinput(inputstr.splitlines())
+
+    routes = itertools.permutations(locations)
+    print 'Part 2: distance of the longest route: %s' % max(sumdist(distances, *t) for t in routes)
 
 if __name__ == '__main__':
     test()
-    main()
+    part1()
+    part2()

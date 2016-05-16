@@ -1,5 +1,6 @@
 import re
 from pprint import pprint as pp
+from adventlib import input_path
 
 class Reindeer(object):
 
@@ -13,6 +14,7 @@ class Reindeer(object):
         self.runtime = flytime
 
         self.distance = 0
+        self.points = 0
 
     def update(self):
         self.runtime -= 1
@@ -24,8 +26,11 @@ class Reindeer(object):
             self.state = 'fly' if self.state == 'rest' else 'rest'
             self.runtime = self.flytime if self.state == 'fly' else self.resttime
 
-def process(text):
-    _re = re.compile('(?P<name>[A-Z][a-z]+) can fly (?P<rate>\d+) km/s for (?P<flytime>\d+) seconds, but then must rest for (?P<resttime>\d+) seconds\.').match
+
+def parse(text):
+    _re = re.compile('(?P<name>[A-Z][a-z]+) can fly (?P<rate>\d+) km/s'
+                     ' for (?P<flytime>\d+) seconds, but then must rest '
+                     'for (?P<resttime>\d+) seconds\.').match
     r = []
     for line in text.splitlines():
         m = _re(line)
@@ -37,6 +42,12 @@ def process(text):
         r.append(attrs)
     return r
 
+def points(reindeers):
+    farthest = max(deer.distance for deer in reindeers)
+    for deer in reindeers:
+        if deer.distance == farthest:
+            deer.points += 1
+
 def test():
     comet = Reindeer('Comet', 14, 10, 127)
     dancer = Reindeer('Dancer', 16, 11, 162)
@@ -44,26 +55,29 @@ def test():
     for _ in range(1000):
         comet.update()
         dancer.update()
-
-    print 'comet ran %s km' % (comet.distance)
-    print 'dancer ran %s km' % (dancer.distance)
+        points([comet, dancer])
 
     assert comet.distance == 1120
     assert dancer.distance == 1056
 
+    assert comet.points == 312
+    assert dancer.points == 689
+
 def main():
-    data = open('input').read()
+    data = open(input_path(__file__, 1)).read()
 
     reindeers = [ Reindeer(attrs['name'], attrs['rate'], attrs['flytime'], attrs['resttime'])
-                  for attrs in process(data) ]
+                  for attrs in parse(data) ]
 
     for _ in range(2503):
         for deer in reindeers:
             deer.update()
+        points(reindeers)
 
-    print max(d.distance for d in reindeers)
+    print 'Part 1: %s' % (max(d.distance for d in reindeers), )
+
+    print 'Part 2: %s' % (max(d.points for d in reindeers), )
 
 if __name__ == '__main__':
     test()
     main()
-    #answer: 2655

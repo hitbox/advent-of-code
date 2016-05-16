@@ -1,3 +1,4 @@
+#!python
 import string
 import itertools
 from string import lowercase
@@ -56,69 +57,26 @@ def increment(s):
     def isvalid():
         return len(getpairs(ords)) > 1 and threes()
 
+    _increment()
+
     while not isvalid():
         _increment()
-        progress("simple: %s" % (ords, ))
 
         while len(getpairs(ords)) < 2:
             _increment()
-            progress(" pairs: %s" % (ords, ))
 
         while not threes():
             _increment()
-            progress("threes: %s" % (ords, ))
 
     return ''.join( chr(o) for o in ords )
 
-_progress = '{}\r'.format
-def progress(s):
-    print s
-    #sys.stdout.write(_progress(s))
-
-def main():
+def part1():
     password = 'vzbxkghb'
-    print '\n' + increment(password)
 
-def debug_isvalid():
-    print isvalid('hijklmmn')
-    print isvalid('abbceffg')
-    print isvalid('abbcegjk')
+    nextpass = increment(password)
+    print 'Part 1: password: %s' % nextpass
 
-    print isvalid()
-
-def debug_increment():
-    s = 'abcdefghiyz'
-
-    fmt = '{}\r'.format
-    sys.stdout.write(fmt(s))
-
-    while True:
-        s = increment(s, 1)
-
-        sys.stdout.write(fmt(s))
-
-def test_stagger():
-    l = range(10)
-    print " the list: %s" % (l,)
-    print "staggered: %s" % (list(stagger(l, 3)), )
-
-def test_pairs():
-    for s in ["abcdef", "aaaaaa", "abcaad", "aacaad", "bbcaad"]:
-        print "%s => %s" % (s, getpairs(s))
-
+    print 'Part 2: password: %s' % increment(nextpass)
 
 if __name__ == '__main__':
-    #debug_isvalid()
-    #test_stagger()
-    #test_pairs()
-
-    main()
-
-    # not right:
-    # vzccaabc
-    # vzbxxwxy
-
-    # F I N A L L Y ! ! !
-    #vzbxxyzz
-    # my pair finding function wrong wrong (well the last thing that was
-    # wrong)
+    part1()

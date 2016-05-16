@@ -1,3 +1,4 @@
+#!python
 from pprint import pprint as pp
 from adventlib import input_path
 
@@ -52,7 +53,6 @@ def part2():
     text = open(input_path(__file__, 1)).read()
     code, mem = total(text.splitlines(), counts2)
     print 'Part 2: %s' % (code - mem)
-    #bad: 3435
 
 if __name__ == '__main__':
     test()
