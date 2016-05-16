@@ -1,8 +1,10 @@
+#!python
 import os
 import re
 from itertools import izip_longest
 from pprint import pprint as pp
 from collections import defaultdict
+from adventlib import input_path
 
 TICKER = {
     'children': 3,
@@ -43,33 +45,35 @@ def parse(text):
         sues.append(parser(line))
     return sues
 
-def getmatches(sue):
+def get_matches(sue, matcher):
     matches = {}
     for tickerkey, tickervalue in TICKER.items():
-        if tickerkey in sue['attrs'] and tickervalue == sue['attrs'][tickerkey]:
-            #matches.append(sue['attrs'][tickerkey])
-            #matches.append({tickerkey: tickervalue})
+        if matcher(tickerkey, tickervalue, sue):
             matches[tickerkey] = tickervalue
     return matches
-    return [ sueitem for sueitem, tickeritem in
-                     izip_longest(sue['attrs'].items(), TICKER.items())
-                     if sueitem == tickeritem ]
 
-def main():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'input')
-    sues_data = parse(open(path).read())
+def part1_matcher(tickerkey, tickervalue, sue):
+    return tickerkey in sue['attrs'] and tickervalue == sue['attrs'][tickerkey]
 
-    notsues = (315, 335, 294, 121, 161, 378, 126)
+def part2_matcher(tickerkey, tickervalue, sue):
+    if tickerkey in ('cats', 'trees'):
+        return tickerkey in sue['attrs'] and tickervalue <= sue['attrs'][tickerkey]
+    if tickerkey in ('pomeranians', 'goldfish'):
+        return tickerkey in sue['attrs'] and tickervalue >= sue['attrs'][tickerkey]
+    return part1_matcher(tickerkey, tickervalue, sue)
 
+def find_sue(sues_data, matcher):
     suematches = {}
     for sue_data in sues_data:
-        matches = getmatches(sue_data)
+        matches = get_matches(sue_data, matcher)
         if matches:
             suematches[sue_data['sue']] = matches
-    pp(suematches)
-    s = sorted(suematches.items(), key=lambda sueitem: len(sueitem[1]))
-    pp(s)
-    #answer: 
+    return sorted(suematches.items(), key=lambda sueitem: len(sueitem[1]))[-1]
+
+def main():
+    sues_data = parse(open(input_path(__file__, 1)).read())
+    print 'Part 1: The Sue: %s' % (find_sue(sues_data, part1_matcher), )
+    print 'Part 2: The Sue: %s' % (find_sue(sues_data, part2_matcher), )
 
 if __name__ == '__main__':
     main()

@@ -2,29 +2,15 @@
 import re
 import os
 from pprint import pprint as pp
+from adventlib import input_path
 
-# tuples because need distinct mappings
-SIMPLE_MACHINE = """\
-H => HO
-H => OH
-O => HH
-HOH
-"""
-
-TEST_MACHINE = """\
-Hi => HO
-Hi => OH
-H => B
-Oi => HH
-HiOH
-"""
-
-def parse(s):
+def parse(text):
     machine = set()
     start = None
 
     map_re = re.compile('(.+) => (.+)').match
-    for line in s.splitlines():
+    for line in text.splitlines():
+        line = line.strip()
         m = map_re(line)
         if m:
             machine.add( m.groups() )
@@ -33,9 +19,6 @@ def parse(s):
             break
 
     return machine, start
-
-def get_replacements(machine, c):
-    return [t[1] for t in machine if t[0] == c]
 
 def distinct_replacements(medicine, machine):
     repls = set()
@@ -53,7 +36,41 @@ def distinct_replacements(medicine, machine):
             start = index + len(sub)
     return repls
 
+INDENT = '  '
+def find(target, current, machine, _depth=1):
+
+    #print (INDENT*(_depth-1)) + 'find: %s, len(...) = %s' % (current, len(current) )
+
+    if len(current) >= len(target):
+        return
+
+    repls = distinct_replacements(current, machine)
+
+    if target in repls:
+        print (INDENT*(_depth-1)) + 'find: depth: %s, FOUND in %s' % (_depth, repls, )
+        return _depth
+
+    for repl in repls:
+        x = find(target, repl, machine, _depth+1)
+        if x is not None:
+            return x
+
 def test():
+    SIMPLE_MACHINE = """\
+    H => HO
+    H => OH
+    O => HH
+    HOH
+    """
+
+    TEST_MACHINE = """\
+    Hi => HO
+    Hi => OH
+    H => B
+    Oi => HH
+    HiOH
+    """
+
     machine, start = parse(SIMPLE_MACHINE)
 
     repls = distinct_replacements(start, machine)
@@ -66,14 +83,34 @@ def test():
     repls = distinct_replacements(start, machine)
     assert repls == set(['BiOH', 'OHOH', 'HiOB', 'HOOH'])
 
-def main():
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'input')) as f:
-        s = f.read()
-        machine, start = parse(s)
-        repls = distinct_replacements(start, machine)
-        print 'distinct molecules after first replacement: %s' % (len(repls), )
+    PART2 = """\
+    e => H
+    e => O
+    H => HO
+    H => OH
+    O => HH
+    e
+    """
 
-        #not: 195, 674
+    machine, start = parse(PART2)
+
+    assert find('HOH', 'e', machine) == 3
+    assert find('HOHOHO', 'e', machine) == 6
+
+def main():
+    with open(input_path(__file__, 1)) as f:
+        s = f.read()
+
+        machine, start = parse(s)
+
+        repls = distinct_replacements(start, machine)
+
+        print 'Part 1: distinct molecules after first replacement: %s' % (len(repls), )
+
+        machine, molecule = parse(s)
+
+        x = find(molecule, 'e', machine)
+        print 'Part 2: step from "e" to molecule: %s' % x
 
 if __name__ == '__main__':
     test()

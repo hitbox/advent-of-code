@@ -1,9 +1,8 @@
+#!python
 import re
 from itertools import permutations
 from pprint import pprint as pp
-
-SAMPLE = """Butterscotch: capacity -1, durability -2, flavor 6, texture 3, calories 8
-Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3"""
+from adventlib import input_path
 
 FIELDS = 'capacity durability flavor texture calories'.split()
 
@@ -24,14 +23,10 @@ def parse(text):
 
     return r
 
-def apply():
-    pass
-
 SCOREFIELDS = [f for f in FIELDS if f != 'calories']
 
 def score(ingredients, recipe):
     total = 1
-
     for scorefield in SCOREFIELDS:
 
         fieldtotal = 0
@@ -47,27 +42,42 @@ def score(ingredients, recipe):
     return total
 
 def distributions(n):
+    # all possible portions of n ingredients
     return ( c for c in permutations(range(1, 100), n) if sum(c) == 100 )
 
-def findbestscore(ingredients):
-    scores = []
+def get_recipes(ingredients):
     recipes = []
     for dist in distributions(len(ingredients)):
         recipe = dict(zip(ingredients.keys(), dist))
-        recipes.append(recipe)
-        scores.append( score(ingredients, recipe) )
-    best = max(scores)
-    return best, recipes[scores.index(best)]
+        recipes.append( (recipe, score(ingredients, recipe)) )
+    return recipes
+
+def calories(ingredients, recipe):
+    return sum(ingredients[ingredient]['calories'] * amount for ingredient, amount in recipe.items())
 
 def test():
+    SAMPLE = """Butterscotch: capacity -1, durability -2, flavor 6, texture 3, calories 8
+Cinnamon: capacity 2, durability 3, flavor -2, texture -1, calories 3"""
+
     ingredients = parse(SAMPLE)
-    score, recipe = findbestscore(ingredients)
-    assert score == 62842880
+    recipes = get_recipes(ingredients)
+
+    assert max(r[1] for r in recipes) == 62842880
+
+    assert max(r[1] for r in recipes if calories(ingredients, r[0]) == 500) == 57600000
+
 
 def main():
-    ingredients = parse(open('input').read())
-    score, recipe = findbestscore(ingredients)
-    print (score, recipe)
+    ingredients = parse(open(input_path(__file__, 1)).read())
+
+    recipes = get_recipes(ingredients)
+
+    print 'Part 1: %s' % max(r[1] for r in recipes)
+
+    recipes = [ recipe_tuple for recipe_tuple in recipes
+                             if calories(ingredients, recipe_tuple[0]) == 500 ]
+
+    print 'Part 2: %s' % max(r[1] for r in recipes)
     #answer: 18965440
 
 if __name__ == '__main__':

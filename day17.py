@@ -1,6 +1,8 @@
+#!python
 import os
 from itertools import permutations, combinations
 from pprint import pprint as pp
+from adventlib import input_path
 
 class Container(object):
 
@@ -34,7 +36,6 @@ def test():
     containers = (twenty, fifteen, ten, five_first, five_second)
 
     solutions = find_combos(store, containers)
-
     solutions_sets = [set(c) for c in solutions]
 
     assert set([fifteen, ten]) in solutions_sets
@@ -45,16 +46,16 @@ def test():
 def main():
     store = 150
 
-    scriptpath = os.path.abspath(__file__)
-    dirpath = os.path.dirname(scriptpath)
-    path = os.path.join(dirpath, 'input')
-    with open(path) as f:
+    with open(input_path(__file__, 1)) as f:
         containers = tuple(Container(int(line)) for line in f.readlines())
 
     solutions = find_combos(store, containers)
-    print len(solutions)
+    print 'Part 1: %s' % (len(solutions), )
+    
+    min_containers = min(len(solution) for solution in solutions)
+    num_min_cans = len([solution for solution in solutions if len(solution) == min_containers])
+    print 'Part 2: %s' % (num_min_cans, )
 
-    #answer: 4372
 
 if __name__ == '__main__':
     test()
