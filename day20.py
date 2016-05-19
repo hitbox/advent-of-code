@@ -14,50 +14,69 @@ def deliver(nhouses, whilefunc):
 
     return houses
 
+def visited_by(house):
+    yield 1
+    if house > 1:
+        yield house
+        for elf in xrange(2, house):
+            if elf > house / 2.0:
+                return
+            if house % elf == 0:
+                yield elf
+
 def presents(house):
-    return sum (elf * 10 for elf in range(1, house + 1) if house % elf == 0 )
+    return sum( elf * 10 for elf in visited_by(house) )
+
+def presentsn(house):
+    return sum( elf for elf in visited_by(house) )
 
 def tests():
-    solution = {
-        1: 10,
-        2: 30,
-        3: 40,
-        4: 70,
-        5: 60,
-        6: 120,
-        7: 80,
-        8: 150,
-        9: 130,
-    }
-    assert { house: presents(house) for house in range(1, 10) } == solution
+    assert presents(1) == 10
+    assert presents(2) == 30
+    assert presents(3) == 40
+    assert presents(4) == 70
+    assert presents(5) == 60
+    assert presents(6) == 120
+    assert presents(7) == 80
+    assert presents(8) == 150
+    assert presents(9) == 130
 
-def getstart(presents):
-    return (presents - 10) / 10
+def get_start(target):
+    step = 100000
+    house = 1
+    row = 0
+    while True:
+        if presents(house) >= target:
+            row += 1
+            print (house, step, step / -2)
+            if abs(step) == 1:
+                break
+            step /= -2
+        house += step
+    return house
 
 def part1():
     target = 33100000
 
-    start = getstart(target)
+    target /= 10
 
-    while True:
-        p = presents(start)
+    house = 2278236
+    house = get_start(target)
+
+    print
+    print house
+
+    houses = []
+    for house in xrange(house, 0, -1):
+        p = presents(house)
         if p >= target:
-            break
-        start *= 2
+            houses.append(house)
+            if (house > 100 and house % 100) or (house % 10):
+                print (house, p)
 
-    while True:
-        if p < target:
-            break
-        p = presents(start)
-        start -= 1
+    pp(sorted(houses))
 
-    spread = 1000
-    houses = ((presents(house),house) for house in range(start - spread, start + spread))
-    houses = ((house,presents) for presents,house in houses if presents >= target)
-    houses = sorted(houses, key=lambda t: t[0], reverse=True)
-    pp(houses)
-
-    nope = (1638399, 3309896, 3308996)
+    nope = (1638399, 3309896, 3308996, 1836522)
 
 def main():
     tests()
