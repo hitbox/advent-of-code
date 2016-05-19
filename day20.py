@@ -25,21 +25,33 @@ def visited_by(house):
                 yield elf
 
 def presents(house):
-    return sum( elf * 10 for elf in visited_by(house) )
+    return sum( elf for elf in factors(house) )
+    return sum( elf * 10 for elf in factors(house) )
 
-def presentsn(house):
-    return sum( elf for elf in visited_by(house) )
+def factors(n):
+    if n == 1:
+        yield 1
+        return
+    for i in xrange(1, n + 1):
+        x, r = divmod(n, i)
+        if r == 0 and i <= x:
+            yield i
+            if x != i:
+                yield x
+        if i >= x:
+            return
+
 
 def tests():
-    assert presents(1) == 10
-    assert presents(2) == 30
-    assert presents(3) == 40
-    assert presents(4) == 70
-    assert presents(5) == 60
-    assert presents(6) == 120
-    assert presents(7) == 80
-    assert presents(8) == 150
-    assert presents(9) == 130
+    assert presents(1) * 10 == 10
+    assert presents(2) * 10 == 30
+    assert presents(3) * 10 == 40
+    assert presents(4) * 10 == 70
+    assert presents(5) * 10 == 60
+    assert presents(6) * 10 == 120
+    assert presents(7) * 10 == 80
+    assert presents(8) * 10 == 150
+    assert presents(9) * 10 == 130
 
 def get_start(target):
     step = 100000
@@ -60,7 +72,6 @@ def part1():
 
     target /= 10
 
-    house = 2278236
     house = get_start(target)
 
     print
@@ -71,12 +82,23 @@ def part1():
         p = presents(house)
         if p >= target:
             houses.append(house)
-            if (house > 100 and house % 100) or (house % 10):
-                print (house, p)
+            #if (house > 100 and house % 100) or (house % 10):
+            #    print (house, p)
 
-    pp(sorted(houses))
+    print min(houses)
 
     nope = (1638399, 3309896, 3308996, 1836522)
+
+    # 2016-05-19
+    # Brute force output:
+    # 2278236
+    # 776160
+    # 
+    # real    9m2.107s
+    # user    0m0.000s
+    # sys     0m0.031s
+    # And that is the answer!
+
 
 def main():
     tests()
