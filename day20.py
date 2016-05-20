@@ -43,34 +43,16 @@ def factors(n):
             return
 
 def first_50(house):
-    if house == 1:
-        yield 1
-        return
-
-    s = set()
-    c = 0
-
     for elf1 in xrange(1, house + 1):
         elf2, remainder = divmod(house, elf1)
-        if remainder == 0 and elf1 <= elf2:
-            c += 1
-            s.add(elf1)
 
-            if elf2 != elf1:
-                c += 1
-                s.add(elf2)
-
-            if len(s) == 50:
-                break
+        if remainder == 0:
+            if house <= elf1 * 50:
+                yield elf1
+            if elf1 != elf2 and house <= elf2 * 50:
+                yield elf2
 
         if elf1 >= elf2:
-            break
-
-    c = 0
-    for f in s:
-        yield f
-        c += 1
-        if c > 50:
             break
 
 def tests():
@@ -123,13 +105,11 @@ def part1():
 def part2():
     target = 33100000
 
-    for house in xrange(99999, target):
-        elves = list(first_50(house))
-        print house
-        print sorted(elves)
-        print len(elves)
-        continue
-        if sum(elf * 11 for elf in first_50(house)) >= target:
+    for house in xrange(1000, target):
+        x = sum(elf * 11 for elf in first_50(house))
+        if house % 100 == 0:
+            print 'house: %s, presents: %s' % (house, x)
+        if x >= target:
             break
 
     print 'Part 2: %s' % (house, )
