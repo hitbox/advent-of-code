@@ -1,4 +1,5 @@
 #!python
+import argparse
 from pprint import pprint as pp
 
 def deliver(nhouses, whilefunc):
@@ -24,11 +25,11 @@ def visited_by(house):
             if house % elf == 0:
                 yield elf
 
-def presents(house):
-    return sum( elf for elf in factors(house) )
-    return sum( elf * 10 for elf in factors(house) )
+def presents(house, perhouse):
+    return sum( elf * perhouse for elf in factors(house) )
 
 def factors(n):
+    # aka: elves
     if n == 1:
         yield 1
         return
@@ -41,26 +42,55 @@ def factors(n):
         if i >= x:
             return
 
+def first_50(house):
+    if house == 1:
+        yield 1
+        return
+
+    s = set()
+    c = 0
+
+    for elf1 in xrange(1, house + 1):
+        elf2, remainder = divmod(house, elf1)
+        if remainder == 0 and elf1 <= elf2:
+            c += 1
+            s.add(elf1)
+
+            if elf2 != elf1:
+                c += 1
+                s.add(elf2)
+
+            if len(s) == 50:
+                break
+
+        if elf1 >= elf2:
+            break
+
+    c = 0
+    for f in s:
+        yield f
+        c += 1
+        if c > 50:
+            break
 
 def tests():
-    assert presents(1) * 10 == 10
-    assert presents(2) * 10 == 30
-    assert presents(3) * 10 == 40
-    assert presents(4) * 10 == 70
-    assert presents(5) * 10 == 60
-    assert presents(6) * 10 == 120
-    assert presents(7) * 10 == 80
-    assert presents(8) * 10 == 150
-    assert presents(9) * 10 == 130
+    assert presents(1, 10) == 10
+    assert presents(2, 10) == 30
+    assert presents(3, 10) == 40
+    assert presents(4, 10) == 70
+    assert presents(5, 10) == 60
+    assert presents(6, 10) == 120
+    assert presents(7, 10) == 80
+    assert presents(8, 10) == 150
+    assert presents(9, 10) == 130
 
-def get_start(target):
+def get_start(target, perhouse):
     step = 100000
     house = 1
     row = 0
     while True:
-        if presents(house) >= target:
+        if presents(house, perhouse) >= target:
             row += 1
-            print (house, step, step / -2)
             if abs(step) == 1:
                 break
             step /= -2
@@ -70,39 +100,51 @@ def get_start(target):
 def part1():
     target = 33100000
 
-    target /= 10
+    #target /= 10
 
-    house = get_start(target)
-
-    print
-    print house
+    house = get_start(target, 10)
 
     houses = []
     for house in xrange(house, 0, -1):
-        p = presents(house)
+        p = presents(house, 10)
         if p >= target:
             houses.append(house)
-            #if (house > 100 and house % 100) or (house % 10):
-            #    print (house, p)
-
-    print min(houses)
-
-    nope = (1638399, 3309896, 3308996, 1836522)
 
     # 2016-05-19
     # Brute force output:
     # 2278236
-    # 776160
-    # 
+    # 776160 <--
+    #
     # real    9m2.107s
     # user    0m0.000s
     # sys     0m0.031s
     # And that is the answer!
 
+def part2():
+    target = 33100000
+
+    for house in xrange(99999, target):
+        elves = list(first_50(house))
+        print house
+        print sorted(elves)
+        print len(elves)
+        continue
+        if sum(elf * 11 for elf in first_50(house)) >= target:
+            break
+
+    print 'Part 2: %s' % (house, )
+
+    # someone else's guess: 831600
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('part', choices=[1,2], type=int)
+    args = parser.parse_args()
     tests()
-    part1()
+    if args.part == 1:
+        part1()
+    elif args.part == 2:
+        part2()
 
 if __name__ == '__main__':
     main()
