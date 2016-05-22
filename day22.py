@@ -29,7 +29,8 @@ class Game(object):
         if self.boss.hitpoints <= 0:
             return self.player
 
-        if ((len(self.spells) == 0 and len(self.player.plan) == 0) or self.player.mana == 0 or self.player.hitpoints <= 0):
+        if ((len(self.spells) == 0 and len(self.player.plan) == 0)
+                or self.player.mana == 0 or self.player.hitpoints <= 0):
             return self.boss
 
     def run(self):
@@ -239,6 +240,10 @@ def get_spellplans(n):
     while len(pspells) < n:
         pspells += pspells
     return permutations(pspells, n)
+
+# XXX:
+# Need a way to go through picking spells that meet the criteria
+#
 
 def part1():
     n = len(SPELLS)
