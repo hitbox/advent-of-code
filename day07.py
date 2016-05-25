@@ -1,6 +1,6 @@
 #!python2
 from pprint import pprint as pp
-from adventlib import input_path
+from adventlib import input_path, safeint
 
 class AND(object):
     def __call__(self, x, y):
@@ -63,12 +63,6 @@ def isop(thing):
 def isint(thing):
     r = isinstance(thing, int)
     return r
-
-def safeint(thing):
-    try:
-        return int(thing)
-    except ValueError:
-        return thing
 
 def is_sequence(thing):
     try:
