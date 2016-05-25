@@ -1,4 +1,8 @@
 #!python
+import random
+import argparse
+from pprint import pprint as pp
+
 from itertools import permutations
 from pprint import pprint as pp
 from adventlib import input_path
@@ -7,12 +11,14 @@ DEBUG = False
 
 class Game(object):
 
-    def __init__(self, player, boss):
+    def __init__(self, player, boss, difficulty):
         player.game = self
         self.player = player
 
         self.boss = boss
         self.spells = []
+
+        self.difficulty = difficulty
 
     def effects(self):
         for spell in self.spells:
@@ -29,8 +35,7 @@ class Game(object):
         if self.boss.hitpoints <= 0:
             return self.player
 
-        if ((len(self.spells) == 0 and len(self.player.plan) == 0)
-                or self.player.mana == 0 or self.player.hitpoints <= 0):
+        if (self.player.mana == 0 or self.player.hitpoints <= 0):
             return self.boss
 
     def run(self):
@@ -41,12 +46,20 @@ class Game(object):
             #    print '-- Player turn --'
             #    print self.info()
 
+            if self.difficulty == "hard":
+                self.player.hitpoints += -1
+                winner = self.get_winner()
+                if winner:
+                    return winner
+
             self.effects()
             winner = self.get_winner()
             if winner:
                 return winner
 
-            self.player.attack(self.boss)
+            spell = self.player.attack(self.boss)
+            if spell is None:
+                return self.boss
             winner = self.get_winner()
             if winner:
                 return winner
@@ -69,11 +82,17 @@ class Game(object):
 
 class Player(object):
 
-    def __init__(self, hitpoints, mana, armor, plan=None):
+    def __init__(self, hitpoints, mana, armor, spellchooser):
         self.hitpoints = hitpoints
         self.mana = mana
         self.armor = armor
-        self.plan = list(plan[::-1]) if plan is not None else []
+
+        self.spellchooser = spellchooser
+        try:
+            self.spellchooser.player = self
+        except AttributeError:
+            pass
+
         self.casted = []
 
     def cast(self, spellclass):
@@ -82,14 +101,38 @@ class Player(object):
         spell = spellclass(self)
         self.casted.append(spell)
         self.game.spells.append(spell)
-
-    def nextspell(self):
-        return self.plan.pop() if self.plan else None
+        return spell
 
     def attack(self, other):
-        spell = self.nextspell()
-        if spell:
-            self.cast(spell)
+        spell = self.spellchooser()
+        if spell is not None:
+            return self.cast(spell)
+
+
+class SpellChooser(object):
+
+    def __init__(self, player=None):
+        self.player = player
+        self.best = None
+
+    def spells_in_effect(self):
+        return self.player.game.spells
+
+    def is_in_effect(self, candidate):
+        # candidate is a class
+        return any(candidate == spell.__class__ for spell in self.spells_in_effect())
+
+    def candidate_cost(self, candidate):
+        return candidate.cost + sum(s.cost for s in self.player.casted)
+
+    def __call__(self):
+        candidates = [ candidate for candidate in SPELLS
+                       if candidate.cost <= self.player.mana
+                          and (self.best is None or self.candidate_cost(candidate) < self.best)
+                          and not self.is_in_effect(candidate) ]
+
+        if candidates:
+            return random.choice(candidates)
 
 
 class Boss(object):
@@ -116,6 +159,9 @@ class Spell(object):
         self.turns = self.turns
         if self.turns is None:
             self.apply(self.player.game.boss)
+
+    def __repr__(self):
+        return '<{}(cost={})>'.format(self.__class__.__name__, self.__class__.cost)
 
     def apply(self, boss):
         pass
@@ -190,7 +236,7 @@ class Recharge(Spell):
 
 SPELLS = [MagicMissle, Drain, Shield, Poison, Recharge]
 
-def get_boss():
+def get_boss_from_input():
     text = open(input_path(__file__, 1)).read()
     stats = {}
     for line in text.splitlines():
@@ -200,16 +246,19 @@ def get_boss():
 
 def init():
     player = Player(50, 500, 0)
-    boss = get_boss()
+    boss = get_boss_from_input()
     game = Game(player, boss)
     return game
+
+def mkspellchooser(l):
+    return l[::-1].pop
 
 def test1():
     if DEBUG:
         print '== Test 1=='
-    player = Player(10, 250, 0, [Poison, MagicMissle])
+    player = Player(10, 250, 0, mkspellchooser([Poison, MagicMissle]))
     boss = Boss(13, 8)
-    game = Game(player, boss)
+    game = Game(player, boss, "easy")
     winner = game.run()
     assert (winner == player and game.player.hitpoints == 2 and
             game.player.armor == 0 and game.player.mana == 24)
@@ -223,17 +272,14 @@ def test2():
     # add check for stats
     if DEBUG:
         print '== Test 2 =='
-    player = Player(10, 250, 0, [Recharge, Shield, Drain, Poison, MagicMissle])
+    player = Player(10, 250, 0, mkspellchooser([Recharge, Shield, Drain, Poison, MagicMissle]))
     boss = Boss(14, 8)
-    game = Game(player, boss)
+    game = Game(player, boss, "easy")
     winner = game.run()
     assert (winner == player and game.player.hitpoints == 1 and
             game.player.armor == 0 and game.player.mana == 114)
     if DEBUG:
         print winner
-
-def test3():
-    raise RuntimeError('Make test for casting same spell on the turn the previous ends.')
 
 def get_spellplans(n):
     pspells = SPELLS[:]
@@ -241,39 +287,40 @@ def get_spellplans(n):
         pspells += pspells
     return permutations(pspells, n)
 
-# XXX:
-# Need a way to go through picking spells that meet the criteria
-#
+def bestgenerator(difficulty):
+    spellchooser = SpellChooser()
+
+    while True:
+        player = Player(50, 500, 0, spellchooser)
+        boss = get_boss_from_input()
+        game = Game(player, boss, difficulty)
+        winner = game.run()
+        if winner == player:
+            winning_cost = cost(game.player.casted)
+            if spellchooser.best is None or winning_cost < spellchooser.best:
+                spellchooser.best = winning_cost
+                print '== New Best =='
+                print winning_cost
+                pp(game.player.casted)
 
 def part1():
-    n = len(SPELLS)
-    while True:
-        spellplans = list(get_spellplans(n))
-        winningplans = []
-        print 'n: %s, # plans: %s' % (n, len(spellplans))
-        if DEBUG:
-            print spellplans
-        for spellplan in spellplans:
-            if DEBUG:
-                print spellplan
-            player = Player(50, 500, 0, spellplan)
-            boss = get_boss()
-            game = Game(player, boss)
-            winner = game.run()
-            if winner == player:
-                winningplans.append(game.player.casted)
-        n += 1
-        if winningplans:
-            break
+    bestgenerator("easy")
 
-    bestspellplan = min(winningplans, key=lambda plan: cost(plan))
-    print 'Part 1: least amount of mana to win: %s' % (bestspellplan, )
+def part2():
+    bestgenerator("hard")
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('part', choices=[1,2], type=int)
+    args = parser.parse_args()
+
     test1()
     test2()
-    test3()
-    part1()
+
+    if args.part == 1:
+        part1()
+    elif args.part == 2:
+        part2()
 
 if __name__ == '__main__':
     main()
