@@ -1,23 +1,11 @@
 #!python
+import sys
 from itertools import combinations, groupby
 from pprint import pprint as pp
 from adventlib import input_path
 
-def take(n, seq):
-    seqi = iter(seq)
-    running = True
-    while running:
-        accum = []
-        for _ in xrange(n):
-            try:
-                accum.append(next(seqi))
-            except StopIteration:
-                running = False
-                break
-        if accum:
-            yield accum
-
 def group_size_iter(n):
+    #hard-coded to 3 sizes
     for i in xrange(1, n - 2):
         j = 1
         k = n - i - 1
@@ -25,11 +13,29 @@ def group_size_iter(n):
             yield (i, j, k)
             j += 1
             k -= 1
-    # old slower
-    #return ((s1,s2,s3) for s1 in xrange(1, n)
-    #                   for s2 in xrange(2, n)
-    #                   for s3 in xrange(3, n)
-    #                   if s1 + s2 + s3 == n)
+
+def ngroup_sizes(n, r):
+    # think I want a general purpose size getter
+    sizes = [1 for _ in range(r-1)]
+
+    i = n - sum(sizes)
+    sizes.append(i)
+    x = -1
+    y = -3
+
+    while sizes[0] <= sizes[1]:
+        while sizes[-2] <= sizes[-1]:
+            yield tuple(sizes)
+            b, a = sizes[-2:]
+            sizes[-2] += 1
+            sizes[-1] += -1
+        x += -1
+        sizes[-1] = i + x
+        sizes[-2] = 1
+        sizes[y] += 1
+        if sizes[y] > sizes[y+1]:
+            sizes[y] = 1
+            y += -1
 
 def quantum_entanglement(group):
     return reduce(lambda a,b: a*b, group)
@@ -39,8 +45,11 @@ def excluding(seq, *excludes):
     return (item for item in seq if item not in exclude)
 
 def groupings(weights, size, *excludes):
-    return (tuple(sorted(group, reverse=True))
-            for group in combinations(excluding(weights, *excludes), size))
+    return (group for group in combinations(excluding(weights, *excludes), size))
+
+def ngroups_iter(weights, ngroups):
+
+    group_weight = sum(weights) / ngroups
 
 def groups_iter(weights):
     third_weight = sum(weights) / 3
@@ -61,7 +70,7 @@ def groups_iter(weights):
                     gsum3 = sum(group3)
                     if glen1 > glen3 or gsum3 != third_weight:
                         continue
-                    yield (group1, group2, group3)
+                    yield sorted((group1, group2, group3), reverse=True)
 
 def configs_iter(weights):
     for groups in groups_iter(sorted(weights, reverse=True)):
@@ -72,12 +81,6 @@ def configs_iter(weights):
 
 # prefer leg room over quantum entanglement
 by_group1_and_qe = lambda t: (len(t[0]), t[1])
-
-def find_configuration(weights):
-    configs = set(t for t in configs_iter(weights))
-
-    data = sorted(configs, key=by_group1_and_qe)
-    return data
 
 def parse(text):
     return map(int, text.splitlines())
@@ -101,6 +104,15 @@ def part1():
 
     weights = parse(text)
 
+    n = len(weights)
+    print 'needs to sum to %s' % n
+
+    for sizes in ngroup_sizes(n, 4):
+        print sizes
+        #print sum(sizes)
+
+    return
+
     collector = set()
     groups = ( mkline(group) for group in groups_iter(weights) )
     for group in groups:
@@ -108,6 +120,7 @@ def part1():
         if len(collector) % 10 == 0:
             print '=== **** ==='
             i = (group for group in sorted(collector, key=by_group1_and_qe))
+            sys.exit()
             n = 0
             for group in i:
                 print pretty(*map(str, group))
