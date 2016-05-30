@@ -14,7 +14,18 @@ def group_size_iter(n):
             j += 1
             k -= 1
 
+def new_group_size_iter(n):
+    for h in xrange(1, n - 4):
+        for i in xrange(1, n - 4):
+            j = 1
+            k = n - 3 - (i - 1) - (h - 1)
+            while j <= k:
+                yield (h, i, j, k)
+                j += 1
+                k += -1
+
 def ngroup_sizes(n, r):
+    # TODO
     # think I want a general purpose size getter
     sizes = [1 for _ in range(r-1)]
 
@@ -129,7 +140,25 @@ def part1():
                     break
     # Took a very long time, like 10-15 minutes but got the answer.
 
+def recurse(*indices):
+    h, t = indices[0], indices[1:]
+
+    if len(t) == 1:
+        t = t[0] + 1
+        yield h
+        #XXX: left off here fiddling with n-nested for loop
+    else:
+        yield recurse(h, *t)
+
+    yield recurse(h, t)
+
+
 def main():
+    for g in recurse(1, 1):
+        print g
+
+    return
+
     test1()
     part1()
 
