@@ -5,7 +5,7 @@ from pprint import pprint as pp
 
 from itertools import permutations
 from pprint import pprint as pp
-from adventlib import input_path
+from adventlib import input_path, parseargs
 
 DEBUG = False
 
@@ -310,9 +310,7 @@ def part2():
     bestgenerator("hard")
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('part', choices=[1,2], type=int)
-    args = parser.parse_args()
+    args = parseargs(requirepart=True)
 
     test1()
     test2()

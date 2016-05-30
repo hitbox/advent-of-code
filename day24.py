@@ -2,9 +2,10 @@
 import sys
 from itertools import combinations, groupby
 from pprint import pprint as pp
-from adventlib import input_path
+from adventlib import input_path, rrange, parseargs
 
-def group_size_iter(n):
+def old_group_size_iter(n, ngroups):
+    #ngroups is ignored
     #hard-coded to 3 sizes
     for i in xrange(1, n - 2):
         j = 1
@@ -14,39 +15,13 @@ def group_size_iter(n):
             j += 1
             k -= 1
 
-def new_group_size_iter(n):
-    for h in xrange(1, n - 4):
-        for i in xrange(1, n - 4):
-            j = 1
-            k = n - 3 - (i - 1) - (h - 1)
-            while j <= k:
-                yield (h, i, j, k)
-                j += 1
-                k += -1
+def new_group_size_iter(nitems, ngroups):
+    for values in rrange(ngroups, 1, nitems+1):
+        if sum(values) != nitems:
+            continue
+        yield values
 
-def ngroup_sizes(n, r):
-    # TODO
-    # think I want a general purpose size getter
-    sizes = [1 for _ in range(r-1)]
-
-    i = n - sum(sizes)
-    sizes.append(i)
-    x = -1
-    y = -3
-
-    while sizes[0] <= sizes[1]:
-        while sizes[-2] <= sizes[-1]:
-            yield tuple(sizes)
-            b, a = sizes[-2:]
-            sizes[-2] += 1
-            sizes[-1] += -1
-        x += -1
-        sizes[-1] = i + x
-        sizes[-2] = 1
-        sizes[y] += 1
-        if sizes[y] > sizes[y+1]:
-            sizes[y] = 1
-            y += -1
+group_size_iter = old_group_size_iter
 
 def quantum_entanglement(group):
     return reduce(lambda a,b: a*b, group)
@@ -58,13 +33,10 @@ def excluding(seq, *excludes):
 def groupings(weights, size, *excludes):
     return (group for group in combinations(excluding(weights, *excludes), size))
 
-def ngroups_iter(weights, ngroups):
-
-    group_weight = sum(weights) / ngroups
-
-def groups_iter(weights):
-    third_weight = sum(weights) / 3
-    for sizes in group_size_iter(len(weights)):
+def groups_iter(weights, ngroups):
+    # still hard-coded with regard to sizes iteration
+    third_weight = sum(weights) / ngroups
+    for sizes in group_size_iter(len(weights), ngroups):
         s1, s2, s3 = sizes
         for group1 in groupings(weights, s1):
             gsum1 = sum(group1)
@@ -102,12 +74,12 @@ def mkline(group):
 def test1():
     print '== Test 1 =='
     weights = range(1,6) + range(7, 12)
-    data = groups_iter(weights)
+    data = groups_iter(weights, 3)
 
     for group in data:
         print pretty(*map(str, mkline(group)))
 
-pretty = '{0:>25} {1:>25} {2:>25} {3:>25}'.format
+pretty = '{0:>30} {1:>15} {2:>30} {3:>30}'.format
 
 def part1():
     print '== Part 1 =='
@@ -115,52 +87,37 @@ def part1():
 
     weights = parse(text)
 
-    n = len(weights)
-    print 'needs to sum to %s' % n
-
-    for sizes in ngroup_sizes(n, 4):
-        print sizes
-        #print sum(sizes)
-
-    return
-
     collector = set()
-    groups = ( mkline(group) for group in groups_iter(weights) )
+    groups = ( mkline(group) for group in groups_iter(weights, 3) )
     for group in groups:
         collector.add(group)
         if len(collector) % 10 == 0:
-            print '=== **** ==='
+            print '=== Top 20 Best So Far ==='
             i = (group for group in sorted(collector, key=by_group1_and_qe))
-            sys.exit()
             n = 0
             for group in i:
                 print pretty(*map(str, group))
+                if group[1] == 10439961859:
+                    sys.exit()
                 n += 1
                 if n > 20:
                     break
     # Took a very long time, like 10-15 minutes but got the answer.
 
-def recurse(*indices):
-    h, t = indices[0], indices[1:]
-
-    if len(t) == 1:
-        t = t[0] + 1
-        yield h
-        #XXX: left off here fiddling with n-nested for loop
-    else:
-        yield recurse(h, *t)
-
-    yield recurse(h, t)
-
+def part2():
+    for sizes in group_size_iter(4, 10):
+        print sizes
 
 def main():
-    for g in recurse(1, 1):
-        print g
+    args = parseargs(requirepart=True)
 
-    return
+    if args.test:
+        test1()
 
-    test1()
-    part1()
+    if args.part == 1:
+        part1()
+    elif args.part == 2:
+        part2()
 
 if __name__ == '__main__':
     main()

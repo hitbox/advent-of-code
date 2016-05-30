@@ -1,6 +1,7 @@
 #!python
 import argparse
 from pprint import pprint as pp
+from adventlib import parseargs
 
 def deliver(nhouses, whilefunc):
     houses = { i: 0 for i in range(1, nhouses) }
@@ -117,9 +118,7 @@ def part2():
     # someone else's guess: 831600
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('part', choices=[1,2], type=int)
-    args = parser.parse_args()
+    args = parseargs(requirepart=True)
     tests()
     if args.part == 1:
         part1()

@@ -1,4 +1,5 @@
 import os
+import argparse
 
 __all__ = ['thisdir', 'input_path', 'safeint']
 
@@ -21,3 +22,42 @@ def safeint(thing):
         return int(thing)
     except ValueError:
         return thing
+
+def rrange(depth, start, stop=None, step=None, _accum=None):
+    """
+    Generate n-nested tuples
+    rrange(3, 3) => ( (i, j, k) for i in range(3) for j in range(3) for k in range(3) )
+    """
+
+    if _accum is None:
+        _accum = tuple()
+
+    # range doesn't like being passed None
+    if stop and step:
+        ranger = range(start, stop, step)
+    elif stop:
+        ranger = range(start, stop)
+    else:
+        ranger = range(start)
+
+    for i in ranger:
+        if depth == 1:
+            yield _accum + (i, )
+        else:
+            for t in rrange(depth-1, start, stop, step, _accum + (i, )):
+                yield t
+
+def parseargs(requirepart=False):
+    parser = argparse.ArgumentParser()
+
+    _a = parser.add_argument
+
+    _a('-t', '--test', action='store_true', help='run tests')
+    _a('-p', '--part', metavar='n', type=int, choices=[1,2], help='run part n (1, 2)')
+
+    args = parser.parse_args()
+
+    if requirepart and not args.part:
+        parser.exit('Part number required')
+
+    return args

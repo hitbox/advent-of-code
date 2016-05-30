@@ -1,6 +1,7 @@
 #!python
 import argparse
 from md5 import md5
+from adventlib import parseargs
 
 def gethash(key, n):
     return md5(key + str(n)).hexdigest()
@@ -36,13 +37,7 @@ def part2():
     print 'Part 2: %s start with six zeros.' % n
 
 def main():
-    parser = argparse.ArgumentParser()
-
-    _a = parser.add_argument
-    _a('-t', '--test', action='store_true', help='run tests')
-    _a('-p', '--part', metavar='n', type=int, choices=[1,2], help='run part n (1, 2)')
-
-    args = parser.parse_args()
+    args = parseargs()
 
     if args.test:
         tests()
