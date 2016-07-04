@@ -47,6 +47,20 @@ def rrange(depth, start, stop=None, step=None, _accum=None):
             for t in rrange(depth-1, start, stop, step, _accum + (i, )):
                 yield t
 
+def parseargs2(other=None):
+    parser = argparse.ArgumentParser()
+
+    choices=['part1', 'part2', 'tests']
+
+    if other is not None:
+        if isinstance(other, basestring):
+            other = [other]
+        choices += list(other)
+
+    parser.add_argument('command', choices=choices, help='Command to run.')
+
+    return parser.parse_args()
+
 def parseargs(requirepart=False):
     parser = argparse.ArgumentParser()
 

@@ -1,218 +1,218 @@
-#!/usr/bin/env python2
-import re
-import os
+#!python2
+from copy import deepcopy
 from pprint import pprint as pp
-from adventlib import input_path
 
-def parse(text):
-    machine = set()
-    start = None
+from adventlib import input_path, parseargs2
 
-    map_re = re.compile('(.+) => (.+)').match
-    for line in text.splitlines():
-        line = line.strip()
-        m = map_re(line)
-        if m:
-            machine.add( m.groups() )
-        elif line:
-            start = line
-            break
+# SECOND ATTEMPT AT PART 2 GAVE UP
+# see day19cheat.py
 
-    return machine, start
+SIMPLE_MACHINE = """\
+H => HO
+H => OH
+O => HH
+HOH
+"""
 
-def parse_medicine(text):
-    for line in text.splitlines():
-        if line and ' => ' not in line:
-            return line
+SIMPLE_MACHINE_2 = """\
+e => H
+e => O
+H => HO
+H => OH
+O => HH
+HOH
+"""
 
-def replace_iter(s, old, new):
-    print 'replace_iter: %s, %s, %s' % (s, old, new, )
-    start = 0
-    n = len(old)
-    while True:
-        index = s.find(old, start)
-        if index == -1:
-            break
-        yield s[:index] + new + s[index+n:]
-        start = index+n
+TEST_MACHINE = """\
+Hi => HO
+Hi => OH
+H => B
+Oi => HH
+HiOH
+"""
 
-def distinct_replacements(medicine, machine):
-    repls = set()
-    for sub, repl in machine:
-        start = 0
-        while True:
-            index = medicine.find(sub, start)
-            if index == -1:
-                break
-            before = medicine[:index]
-            after = medicine[index+len(sub):]
-            molecule = before + repl + after
+# the whole input machine with simpler start
+SIMPLIFIED = """\
+Al  =>  ThF
+Al  =>  ThRnFAr
+B   =>  BCa
+B   =>  TiB
+B   =>  TiRnFAr
+Ca  =>  CaCa
+Ca  =>  PB
+Ca  =>  PRnFAr
+Ca  =>  SiRnFYFAr
+Ca  =>  SiRnMgAr
+Ca  =>  SiTh
+F   =>  CaF
+F   =>  PMg
+F   =>  SiAl
+H   =>  CRnAlAr
+H   =>  CRnFYFYFAr
+H   =>  CRnFYMgAr
+H   =>  CRnMgYFAr
+H   =>  HCa
+H   =>  NRnFYFAr
+H   =>  NRnMgAr
+H   =>  NTh
+H   =>  OB
+H   =>  ORnFAr
+Mg  =>  BF
+Mg  =>  TiMg
+N   =>  CRnFAr
+N   =>  HSi
+O   =>  CRnFYFAr
+O   =>  CRnMgAr
+O   =>  HP
+O   =>  NRnFAr
+O   =>  OTi
+P   =>  CaP
+P   =>  PTi
+P   =>  SiRnFAr
+Si  =>  CaSi
+Th  =>  ThCa
+Ti  =>  BP
+Ti  =>  TiTi
+e   =>  HF
+e   =>  NAl
+e   =>  OMg
 
-            repls.add(molecule)
-            start = index + len(sub)
-    return repls
+CRnFYFYFArPMg
+"""
 
-INDENT = '  '
-def find(target, current, machine, _depth=1):
+def pindent(depth, s, *fmtargs):
+    indent = '  ' * depth
+    print indent + s % fmtargs
 
-    #print (INDENT*(_depth-1)) + 'find: %s, len(...) = %s' % (current, len(current) )
+class Machine(object):
 
-    if len(current) >= len(target):
-        return
+    def __init__(self, machine_text):
+        self.machine_text = machine_text
+        self.machine = None
+        self.start = None
+        self._needles = None
 
-    repls = distinct_replacements(current, machine)
-
-    if target in repls:
-        print (INDENT*(_depth-1)) + 'find: depth: %s, FOUND in %s' % (_depth, repls, )
-        return _depth
-
-    for repl in repls:
-        x = find(target, repl, machine, _depth+1)
-        if x is not None:
-            return x
-
-def test():
-    SIMPLE_MACHINE = """\
-    H => HO
-    H => OH
-    O => HH
-    HOH
-    """
-
-    TEST_MACHINE = """\
-    Hi => HO
-    Hi => OH
-    H => B
-    Oi => HH
-    HiOH
-    """
-
-    machine, start = parse(SIMPLE_MACHINE)
-
-    repls = distinct_replacements(start, machine)
-    assert repls == set(('HOOH', 'HOHO', 'OHOH', 'HHHH'))
-
-    repls = distinct_replacements('HOHOHO', machine)
-    assert len(repls) == 7
-
-    machine, start = parse(TEST_MACHINE)
-    repls = distinct_replacements(start, machine)
-    assert repls == set(['BiOH', 'OHOH', 'HiOB', 'HOOH'])
-
-    PART2 = """\
-    e => H
-    e => O
-    H => HO
-    H => OH
-    O => HH
-    e
-    """
-
-    machine, start = parse(PART2)
-
-    assert find('HOH', 'e', machine) == 3
-    assert find('HOHOHO', 'e', machine) == 6
-
-def make_graph(text):
-    graph = {}
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or ' => ' not in line:
-            break
-        k, v = line.split(' => ')
-        if k in graph:
-            graph[k].append(v)
-        else:
-            graph[k] = [v]
-    return graph
-
-    graph2 = graph.copy()
-
-    values = [ repl for value in graph.values() for repl in value ]
-    for repl in values:
-        for key in graph.viewkeys():
-            if key in repl:
-                if repl in graph:
-                    graph2[repl].append(key)
+    def get_machine_and_start(self, s):
+        machine = {}
+        start = None
+        for line in s.splitlines():
+            if not line:
+                continue
+            left_and_right = line.split(' => ')
+            if len(left_and_right) > 1:
+                left, right = left_and_right
+                left = left.strip()
+                right = right.strip()
+                if left in machine:
+                    machine[left].append(right)
                 else:
-                    graph2[repl] = [key]
+                    machine[left] = [right]
+            else:
+                start = left_and_right[0]
+                break
+        else:
+            raise RuntimeError('Failed to parse machine string.')
+        return machine, start
 
-    return graph2
+    def get_reducer_and_start(self, s):
+        machine, start = self.get_machine_and_start(s)
 
-def findgraph(target, current, graph, path=[], depth=0):
-    path = path + [current]
+        reducer = {}
+        for key, values in machine.iteritems():
+            for value in values:
+                reducer[value] = key
 
-    if depth > 3:
-        return
+        return reducer, start
 
-    if len(current) > 12:
-        return
+    def init(self):
+        self.machine, self.start = self.get_reducer_and_start(self.machine_text)
+        self._needles = None
 
-    indent = INDENT * (len(path) - 1)
+    def find(self, target):
+        self.init()
 
-    print indent + 'findgraph: current: %s' % (current, )
+        # prevent target from being replaced
+        self.machine = { key:value for key, value in self.machine.items() if key != target }
 
-    if current == target:
-        return current
+        #pp(self.machine)
+        #print
 
-    for key, replacements in graph.iteritems():
-        if key not in current:
-            continue
-        #print indent + 'findgraph: (%s, %s)' % (key, replacements)
+        return self.reduce(target, self.start)
 
-        for replacement in replacements:
-            print indent + 'findgraph: replacement: %s' % (replacement, )
+    def get_needles(self):
+        if self._needles is None:
+            self._needles = sorted(self.machine.keys(), key=len, reverse=True)
+        return self._needles
 
-            for repl in replace_iter(current, key, replacement):
-                print indent + 'findgraph: repl: %s' % (repl, )
+    def get_replacements(self, current):
+        for needle in self.get_needles():
+            #print 'needle: %r' % needle
+            if needle not in current:
+                continue
+            replacement = self.machine[needle]
+            #print 'replacement: %r' % replacement
+            yield (needle, replacement)
 
-                newcurrent = findgraph(target, repl, graph, depth=depth+1)
+    def reduce(self, target, path_or_start, depth=0):
+        if path_or_start is None:
+            yield
+            return
 
-                if newcurrent:
-                    return newcurrent
+        #pindent(depth, 'path_or_start: %r', path_or_start)
 
-def debug():
+        if isinstance(path_or_start, basestring):
+            path = [path_or_start]
+        else:
+            path = path_or_start
+
+        current = path[-1]
+
+        #pindent(depth, 'path: %r, current: %r', path, current)
+
+        if current == target:
+            #pindent(depth, 'found: %r == %r', current, target)
+            yield path
+            return
+        elif target in current:
+            #pindent(depth, 'nope')
+            yield
+            return
+
+        depth += 1
+        for needle, replacement in self.get_replacements(current):
+            if needle not in current:
+                continue
+            #pindent(depth, 'needle: %r, replacement: %r', needle, replacement)
+
+            replaced = current.replace(needle, replacement)
+
+            pathgenerator = self.reduce(target, path+[replaced], depth+1)
+            for anotherpath in pathgenerator:
+                if anotherpath:
+                    yield anotherpath
+
+
+def simplified():
+    text = SIMPLIFIED
+    machine = Machine(text)
+
+    for path in machine.find('e'):
+        print path
+
+def part2():
     text = open(input_path(__file__, 1)).read()
-    SIMPLE_MACHINE = """\
-    e => H
-    e => O
-    H => HO
-    H => OH
-    O => HH
-    HOH
-    """
+    machine = Machine(text)
 
-    graph = make_graph(SIMPLE_MACHINE)
-    medicine = parse_medicine(SIMPLE_MACHINE)
+    for path in machine.find('e'):
+        print path
 
-    pp(graph)
-    print medicine
-
-    r = findgraph(medicine, 'e', graph)
-    print r
-
-    return
-    #machine, medicine = parse(text)
-
-    pp(graph)
-    pp(graph)
 
 def main():
-    with open(input_path(__file__, 1)) as f:
-        s = f.read()
-
-        machine, start = parse(s)
-
-        repls = distinct_replacements(start, machine)
-
-        print 'Part 1: distinct molecules after first replacement: %s' % (len(repls), )
-
-        machine, molecule = parse(s)
-
-        x = find(molecule, 'e', machine)
-        print 'Part 2: step from "e" to molecule: %s' % x
+    args = parseargs2(other='simplified')
+    if args.command == 'part2':
+        part2()
+    elif args.command == 'simplified':
+        simplified()
 
 if __name__ == '__main__':
-    debug()
-    #test()
-    #main()
+    main()
